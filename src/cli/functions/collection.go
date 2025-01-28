@@ -12,43 +12,6 @@ type Collection struct {
 	Whitelist bool
 }
 
-// application operations
-
-func NewCollection(name string) (*Collection, error) {
-	// Check if the name is alphanumeric
-	if matched, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", name); !matched {
-		return nil, errors.New("collection's name must be alphanumeric")
-	}
-
-	// Check if the collection name already exists in the database
-	existingCollection, err := ReadCollectionByName(name)
-	if err != nil {
-		// Handle potential database read error
-		return nil, fmt.Errorf("error checking collection name: %v", err)
-	}
-
-	if existingCollection != (Collection{}) {
-		return nil, errors.New("collection name already exists")
-	}
-
-	// Write collection to the database
-	werr := WriteCollection(Collection{
-		ID:        0,
-		Name:      name,
-		Whitelist: false,
-	})
-	if werr != nil {
-		// Handle potential database write error
-		return nil, fmt.Errorf("error writing collection: %v", werr)
-	}
-
-	// Fetch the collection for confirmation
-	createdCollection, err := ReadCollectionByName(name)
-
-	// Return the created collection
-	return &createdCollection, err
-}
-
 func (c *Collection) GetCollectionID() int {
 	return c.ID
 }
@@ -65,10 +28,66 @@ func (c *Collection) String() string {
 	return fmt.Sprintf("Collection[ID=%d, Name=%s, Whitelist=%t]", c.ID, c.Name, c.Whitelist)
 }
 
+// application operations
+
+func NewCollection(name string) (*Collection, error) {
+	// Check if the name is alphanumeric
+	if matched, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", name); !matched {
+		return nil, errors.New("collection's name must be alphanumeric")
+	}
+
+	// Check if the collection name already exists in the database
+	existingCollection, err := readCollectionByName(name)
+	if err != nil {
+		// Handle potential database read error
+		return nil, fmt.Errorf("error checking collection name: %v", err)
+	}
+
+	if existingCollection != (Collection{}) {
+		return nil, errors.New("collection name already exists")
+	}
+
+	// Write collection to the database
+	werr := writeCollection(Collection{
+		ID:        0,
+		Name:      name,
+		Whitelist: false,
+	})
+	if werr != nil {
+		// Handle potential database write error
+		return nil, fmt.Errorf("error writing collection: %v", werr)
+	}
+
+	// Fetch the collection for confirmation
+	createdCollection, err := readCollectionByName(name)
+
+	// Return the created collection
+	return &createdCollection, err
+}
+
+func GetCollections() ([]Collection, error) {
+
+	// Get all collections from the database
+	collections, err := readAllCollections()
+	if err != nil {
+		return nil, fmt.Errorf("error reading collections: %v", err)
+	}
+
+	// Filter collections to return only those who have whitelist=false
+	filteredCollections := []Collection{}
+	for _, c := range collections {
+		if !c.Whitelist {
+			filteredCollections = append(filteredCollections, c)
+		}
+	}
+
+	return filteredCollections, nil
+}
+
 // database operations
 
-// WriteCollection() - will write a collection to the database
-func WriteCollection(collection Collection) error {
+// writeCollection() - will write a collection to the database
+func writeCollection(collection Collection) error {
 	// write collection to database
 	db := GetDB()
 
@@ -98,8 +117,8 @@ func WriteCollection(collection Collection) error {
 	return nil
 }
 
-// ReadCollectionByName() - will read a collection from the database by name
-func ReadCollectionByName(collectionName string) (Collection, error) {
+// readCollectionByName() - will read a collection from the database by name
+func readCollectionByName(collectionName string) (Collection, error) {
 	// read collection from database
 	db := GetDB()
 
@@ -114,16 +133,14 @@ func ReadCollectionByName(collectionName string) (Collection, error) {
 	err = stmt.QueryRow(collectionName).Scan(&c.ID, &c.Name, &c.Whitelist)
 	if err != nil && err.Error() != "sql: no rows in result set" {
 		// return empty collection and error if there is an error scanning the table
-		fmt.Printf("custom_error: %v\n", err)
-		fmt.Println(err)
 		return Collection{}, err
 	}
 
 	return c, nil
 }
 
-// ReadCollectionById() - will read a collection from the database by ID
-func ReadCollectionById(collectionID int) (Collection, error) {
+// readCollectionById() - will read a collection from the database by ID
+func readCollectionById(collectionID int) (Collection, error) {
 	// read collection from database
 	db := GetDB()
 
@@ -136,7 +153,7 @@ func ReadCollectionById(collectionID int) (Collection, error) {
 
 	var c Collection
 	err = stmt.QueryRow(collectionID).Scan(&c.ID, &c.Name, &c.Whitelist)
-	if err != nil {
+	if err != nil && err.Error() != "sql: no rows in result set" {
 		// return empty collection and error if there is an error scanning the table
 		return Collection{}, err
 	}
@@ -144,7 +161,7 @@ func ReadCollectionById(collectionID int) (Collection, error) {
 	return c, nil
 }
 
-func ReadCollectionWhitelistStatusByName(collectionName string) (bool, error) {
+func readCollectionWhitelistStatusByName(collectionName string) (bool, error) {
 	// read collection from database
 	db := GetDB()
 
@@ -165,7 +182,7 @@ func ReadCollectionWhitelistStatusByName(collectionName string) (bool, error) {
 	return whitelist, nil
 }
 
-func ReadCollectionWhitelistStatusById(collectionID int) (bool, error) {
+func readCollectionWhitelistStatusById(collectionID int) (bool, error) {
 	// read collection from database
 	db := GetDB()
 
@@ -184,4 +201,36 @@ func ReadCollectionWhitelistStatusById(collectionID int) (bool, error) {
 	}
 
 	return whitelist, nil
+}
+
+// Function that will read all collections from collections table
+func readAllCollections() ([]Collection, error) {
+	// read collection from database
+	db := GetDB()
+
+	stmt, err := db.Prepare("SELECT id, name, whitelist FROM collections")
+	if err != nil {
+		// return empty collection and error if there is an error preparing the statement
+		return nil, err
+	}
+	defer stmt.Close()
+
+	collections := []Collection{}
+	rows, err := stmt.Query()
+	if err != nil {
+		// return empty collection and error if there is an error scanning the table
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var c Collection
+		err = rows.Scan(&c.ID, &c.Name, &c.Whitelist)
+		if err != nil {
+			return nil, err
+		}
+		collections = append(collections, c)
+	}
+
+	return collections, nil
 }

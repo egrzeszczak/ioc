@@ -19,6 +19,17 @@ var collectionListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all collections",
 	Run: func(cmd *cobra.Command, args []string) {
+		collections, err := functions.GetCollections()
+		if err != nil {
+			fmt.Printf("Error getting collections: %v\n", err)
+			return
+		}
+
+		// Print collections to the console: id\tname\twhitelist
+		fmt.Printf("ID\t\tName\n")
+		for _, c := range collections {
+			fmt.Printf("%d\t\t%s\n", c.ID, c.Name)
+		}
 	},
 }
 
