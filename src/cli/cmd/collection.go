@@ -55,6 +55,29 @@ var collectionCreateCmd = &cobra.Command{
 	},
 }
 
+// ioc collection rename
+var collectionRenameCmd = &cobra.Command{
+	Use:   "rename <collection_name> <new_collection_name>",
+	Short: "Rename a collection",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 2 {
+			cmd.Help()
+			return
+		}
+
+		collectionName := args[0]
+		newCollectionName := args[1]
+
+		collection, err := functions.RenameCollection(collectionName, newCollectionName)
+		if err != nil {
+			fmt.Printf("Error renaming collection: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Renamed collection '%s' to '%s'\n", collectionName, collection.Name)
+	},
+}
+
 // ioc collection delete
 var collectionDeleteCmd = &cobra.Command{
 	Use:   "delete <collection_name>",
@@ -127,6 +150,7 @@ func init() {
 	collectionCmd.AddCommand(collectionDeleteCmd)                   // ioc collection delete
 	collectionCmd.AddCommand(collectionImportCmd)                   // ioc collection import
 	collectionCmd.AddCommand(collectionExportCmd)                   // ioc collection export
+	collectionCmd.AddCommand(collectionRenameCmd)                   // ioc collection rename
 	collectionWhitelistCmd.AddCommand(collectionWhitelistAddCmd)    // ioc collection whitelist add
 	collectionWhitelistCmd.AddCommand(collectionWhitelistRemoveCmd) // ioc collection whitelist remove
 	collectionCmd.AddCommand(collectionWhitelistCmd)                // ioc collection whitelist

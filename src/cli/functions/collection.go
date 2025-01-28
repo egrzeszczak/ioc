@@ -65,6 +65,39 @@ func NewCollection(name string) (*Collection, error) {
 	return &createdCollection, err
 }
 
+func RenameCollection(collectionName string, newCollectionName string) (Collection, error) {
+	// old collection name must exist - check if old exists, if yes fetch it
+	oldCollection, err := readCollectionByName(collectionName)
+	if err != nil {
+		// Handle potential database read error
+		return Collection{}, fmt.Errorf("error checking collection name: %v", err)
+	}
+
+	// if oldCollection is not empty then it exists
+	if oldCollection == (Collection{}) {
+		return Collection{}, errors.New("collection name does not exist")
+	}
+
+	// new collection name must be free, therefore to not exist
+	newCollection, err := readCollectionByName(newCollectionName)
+	if err != nil {
+		// Handle potential database read error
+		return Collection{}, fmt.Errorf("error checking collection name: %v", err)
+	}
+
+	if newCollection != (Collection{}) {
+		return Collection{}, errors.New("new collection name already exists")
+	}
+
+	// rename the collection in the database
+	collection, err := editCollectionByID(oldCollection.ID, newCollectionName)
+	if err != nil {
+		return Collection{}, fmt.Errorf("error renaming collection: %v", err)
+	}
+
+	return collection, nil
+}
+
 func GetCollections() ([]Collection, error) {
 
 	// Get all collections from the database
@@ -115,6 +148,27 @@ func writeCollection(collection Collection) error {
 	}
 
 	return nil
+}
+
+// editCollectionByID() - will edit a collection in the database by ID
+func editCollectionByID(collectionID int, newCollectionName string) (Collection, error) {
+	// edit collection in database
+	db := GetDB()
+
+	stmt, err := db.Prepare("UPDATE collections SET name = ? WHERE id = ?")
+	if err != nil {
+		// return empty collection and error if there is an error preparing the statement
+		return Collection{}, err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(newCollectionName, collectionID)
+	if err != nil {
+		// return empty collection and error if there is an error scanning the table
+		return Collection{}, err
+	}
+
+	return readCollectionByName(newCollectionName)
 }
 
 // readCollectionByName() - will read a collection from the database by name
