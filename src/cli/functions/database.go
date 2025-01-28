@@ -1,11 +1,5 @@
 package functions
 
-// global handler
-// path to database is "./database.go"
-
-// CreateNewDatabase()
-// ListAllDatabaseContents()
-
 import (
 	"database/sql"
 	"log"
