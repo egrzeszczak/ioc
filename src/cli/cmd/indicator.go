@@ -65,7 +65,7 @@ var removeCmd = &cobra.Command{
 			return
 		}
 
-		// TODO: Implement remove indicatorcccccbkhnrckuflgtddfdrkivftlejindcheibdvfujh
+		// TODO: Implement remove indicator
 
 	},
 }
