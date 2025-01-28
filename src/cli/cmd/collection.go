@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/egrzeszczak/ioc/src/cli/functions"
 	"github.com/spf13/cobra"
 )
 
@@ -28,6 +31,16 @@ var collectionCreateCmd = &cobra.Command{
 			cmd.Help()
 			return
 		}
+
+		// Create a new collection
+		collectionName := args[0]
+		newCollection, err := functions.NewCollection(collectionName)
+		if err != nil {
+			fmt.Printf("Error creating collection: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Created collection: %s\n", newCollection)
 	},
 }
 
