@@ -48,6 +48,7 @@ var addCmd = &cobra.Command{
 		newIndicator, err := functions.NewIndicator(collectionName, indicator)
 		if err != nil {
 			fmt.Printf("Error adding indicator: %v\n", err)
+			return
 		}
 
 		fmt.Printf("Added indicator: %s\n", newIndicator)
