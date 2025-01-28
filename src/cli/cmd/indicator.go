@@ -55,6 +55,20 @@ var addCmd = &cobra.Command{
 	},
 }
 
+// ioc remove
+var removeCmd = &cobra.Command{
+	Use:   "remove <collection_name> <indicator>",
+	Short: "Remove an indicator from a collection",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 2 {
+			cmd.Help()
+			return
+		}
+
+		// TODO: Implement remove indicator
+	},
+}
+
 // ioc bulk-add
 var bulkAddCmd = &cobra.Command{
 	Use:   "bulk-add <collection_name> <filepath>",
@@ -82,6 +96,7 @@ var searchCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(listCmd)    // ioc list
 	rootCmd.AddCommand(addCmd)     // ioc add
+	rootCmd.AddCommand(removeCmd)  // ioc remove
 	rootCmd.AddCommand(bulkAddCmd) // ioc bulk-add
 	rootCmd.AddCommand(searchCmd)  // ioc search
 }
